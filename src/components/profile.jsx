@@ -1,20 +1,71 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { API_ROUTES } from '../api/api';
 import './profile.css';
 
-// FUTURE API INTEGRATION — COMMENTED FOR NOW
-// import { API_ROUTES } from '../api/api.jsx';
+const getSavedDraft = () => {
+  try {
+    const saved = sessionStorage.getItem('kaamdaar_registration_draft');
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    return null;
+  }
+};
+
+const INDIAN_STATES = [
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chhattisgarh',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+  'Delhi',
+  'Jammu and Kashmir',
+  'Ladakh',
+  'Puducherry',
+];
 
 const Profile = () => {
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const [draft, setDraft] = useState(null);
-  const [verificationToken, setVerificationToken] = useState('');
-  const [verificationMethod, setVerificationMethod] = useState('mobile');
-  const [previewMode, setPreviewMode] = useState(false);
+  const [draft] = useState(
+    () => location.state?.draft || getSavedDraft()
+  );
 
-  const [form, setForm] = useState({
+  const [verificationToken] = useState(
+    () =>
+      location.state?.verificationToken ||
+      sessionStorage.getItem('kaamdaar_verification_token') ||
+      ''
+  );
+
+  const [formData, setFormData] = useState({
+    full_name: '',
+    last_name: '',
+    age: '',
     address: '',
     city: '',
     state: '',
@@ -25,389 +76,366 @@ const Profile = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  // ==========================================
-  // LOAD REGISTRATION DETAILS
-  // Accept preview navigation without an API token.
-  // ==========================================
-
   useEffect(() => {
-    let savedDraft = location.state?.draft;
-
-    if (!savedDraft) {
-      try {
-        savedDraft = JSON.parse(
-          sessionStorage.getItem('kaamdaar_registration_draft') || 'null'
-        );
-      } catch {
-        savedDraft = null;
-      }
-    }
-
-    const isPreview = location.state?.previewMode === true;
-
-    const token = location.state?.verificationToken || '';
-
-    const method =
-      location.state?.verificationMethod ||
-      savedDraft?.verificationMethod ||
-      'mobile';
-
-    // No registration draft means the signup flow
-    // was not completed properly.
-    if (!savedDraft) {
+    if (!draft?.mobile || !draft?.country_code || !verificationToken) {
       navigate('/signup', { replace: true });
-      return;
     }
-
-    // In preview mode, no real verification token is needed.
-    // In dynamic mode, a verified token is required.
-    if (!isPreview && !token) {
-      navigate('/signup', { replace: true });
-      return;
-    }
-
-    setDraft(savedDraft);
-    setVerificationToken(token);
-    setVerificationMethod(method);
-    setPreviewMode(isPreview);
-  }, [location.state, navigate]);
-
-  // ==========================================
-  // FORM INPUT HANDLING
-  // ==========================================
+  }, [draft, verificationToken, navigate]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
 
-    setForm((previous) => ({
-      ...previous,
-      [name]: value,
+    setFormData((current) => ({
+      ...current,
+      [name]: name === 'pincode' ? value.replace(/\D/g, '').slice(0, 6) : value,
     }));
 
     setError('');
   };
 
-  // ==========================================
-  // COMPLETE REGISTRATION
-  // PREVIEW MODE — ACTIVE
-  // No API call will be made.
-  // ==========================================
-
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
 
-    if (!form.address.trim()) {
-      setError('Please enter your house or street address.');
+    const {
+      full_name,
+      last_name,
+      age,
+      address,
+      city,
+      state,
+      pincode,
+    } = formData;
+
+    if (
+      !full_name.trim() ||
+      !last_name.trim() ||
+      !age ||
+      !address.trim() ||
+      !city.trim() ||
+      !state ||
+      !pincode
+    ) {
+      setError('Please fill in all the required fields.');
       return;
     }
 
-    if (!form.city.trim()) {
-      setError('Please enter your city.');
+    const numericAge = Number(age);
+
+    if (!Number.isInteger(numericAge) || numericAge < 18 || numericAge > 100) {
+      setError('Please enter a valid age between 18 and 100.');
       return;
     }
 
-    if (!form.state.trim()) {
-      setError('Please enter your state.');
+    if (!/^\d{6}$/.test(pincode)) {
+      setError('Please enter a valid 6-digit pincode.');
       return;
     }
 
-    if (!/^\d{6}$/.test(form.pincode)) {
-      setError('Please enter a valid 6-digit PIN code.');
+    if (!verificationToken) {
+      setError('Your verification session has expired. Please sign up again.');
       return;
     }
 
-    // PREVIEW MODE
-    // Save no account to the database.
-    // Only show the success screen for UI testing.
+    const registrationData = {
+      ...draft,
+      full_name: full_name.trim(),
+      last_name: last_name.trim(),
+      age: numericAge,
+      address: address.trim(),
+      city: city.trim(),
+      state,
+      pincode,
+      verificationMethod: 'mobile',
+      verificationToken,
+    };
 
-    if (previewMode) {
-      sessionStorage.removeItem('kaamdaar_registration_draft');
-      setSuccess(true);
-      return;
-    }
-
-    // ==========================================
-    // DYNAMIC API MODE — COMMENTED FOR NOW
-    // Enable when the backend is ready.
-    // ==========================================
-
-    /*
     setLoading(true);
 
     try {
-      const response = await fetch(
-        API_ROUTES.auth.registerCustomer,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${verificationToken}`,
-          },
-          body: JSON.stringify({
-            ...draft,
-            ...form,
-            verification_method: verificationMethod,
-            verification_token: verificationToken,
-          }),
-        }
-      );
+      const response = await fetch(API_ROUTES.auth.registerCustomer, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${verificationToken}`,
+        },
+        body: JSON.stringify(registrationData),
+      });
 
-      const result = await response.json().catch(() => ({}));
+      const data = await response.json().catch(() => ({}));
 
-      if (!response.ok || result.success === false) {
+      if (!response.ok || data.success === false) {
         throw new Error(
-          result.message || 'Registration could not be completed.'
+          data.message || 'Unable to complete registration. Please try again.'
         );
       }
 
       sessionStorage.removeItem('kaamdaar_registration_draft');
+      sessionStorage.removeItem('kaamdaar_verification_token');
+
       setSuccess(true);
     } catch (err) {
       setError(
-        err.message || 'Unable to complete registration. Please try again.'
+        err.message ||
+          'Unable to connect to the server. Please try again.'
       );
     } finally {
       setLoading(false);
     }
-    */
   };
 
-  // Wait until registration details have been loaded.
-  if (!draft) {
+  if (!draft?.mobile || !draft?.country_code || !verificationToken) {
     return null;
   }
 
-  // ==========================================
-  // SUCCESS SCREEN
-  // ==========================================
+  return (
+    <div className="profile-page">
+      <header className="profile-navbar">
+        <Link to="/" className="profile-brand" aria-label="Kaamdaar home">
+          <span className="profile-brand-mark">K</span>
 
-  if (success) {
-    return (
-      <div className="profile-page">
-        <header className="signup-header">
-          <Link to="/" className="signup-brand" aria-label="Kaamdaar home">
-            <span className="signup-brand-mark">K</span>
-            <span>
-              Kaam<span className="signup-brand-accent">daar</span>
+          <span className="profile-brand-text">
+            <span className="profile-brand-name">
+              Kaam<span>da</span>ar
             </span>
+            <small>Your Home Expert</small>
+          </span>
+        </Link>
+
+        <nav className="profile-nav-links">
+          <Link to="/" className="profile-home-link">
+            Home
           </Link>
 
-          <Link to="/signup" className="signup-header-link">
-            Sign Up
+          <Link to="/login" className="profile-login-button">
+            Login
           </Link>
-        </header>
+        </nav>
+      </header>
 
-        <main className="profile-main">
-          <section className="profile-card profile-success-card">
+      <main className="profile-main">
+        {success ? (
+          <section className="profile-success-card">
             <div className="profile-success-icon" aria-hidden="true">
               ✓
             </div>
 
-            <p className="profile-step">REGISTRATION COMPLETE</p>
+            <h1>Account Created Successfully!</h1>
 
-            <h1>Welcome to Kaamdaar!</h1>
-
-            <p className="profile-intro">
-              Your registration flow is complete. Thank you for joining
-              Kaamdaar.
+            <p>
+              Welcome to Kaamdaar! Your details have been submitted
+              successfully.
             </p>
 
-            <Link to="/" className="profile-submit profile-home-link">
-              Go to Home <span aria-hidden="true">→</span>
+            <Link to="/" className="profile-primary-button profile-home-button">
+              Explore Kaamdaar <span aria-hidden="true">→</span>
             </Link>
           </section>
-        </main>
+        ) : (
+          <section className="profile-card">
+            <div className="profile-card-brand" aria-hidden="true">
+              <span className="profile-brand-mark">K</span>
 
-        <footer className="signup-footer">
-          © {new Date().getFullYear()} Kaamdaar. All rights reserved.
-        </footer>
-      </div>
-    );
-  }
-
-  // ==========================================
-  // PROFILE FORM
-  // ==========================================
-
-  return (
-    <div className="profile-page">
-      <header className="signup-header">
-        <Link to="/" className="signup-brand" aria-label="Kaamdaar home">
-          <span className="signup-brand-mark">K</span>
-          <span>
-            Kaam<span className="signup-brand-accent">daar</span>
-          </span>
-        </Link>
-
-        <Link to="/signup" className="signup-header-link">
-          Sign Up
-        </Link>
-      </header>
-
-      <main className="profile-main">
-        <section className="profile-card">
-          <div className="profile-progress">
-            <span className="profile-progress-done" />
-            <span className="profile-progress-done" />
-            <span className="profile-progress-current" />
-          </div>
-
-          <p className="profile-step">STEP 3 OF 3</p>
-
-          <h1>Complete your profile</h1>
-
-          <p className="profile-intro">
-            Just a few more details so we can serve you better.
-          </p>
-
-          <div className="profile-verified">
-            <span className="profile-verified-check">✓</span>
-
-            <div>
-              <strong>
-                {previewMode
-                  ? 'Verification preview'
-                  : verificationMethod === 'email'
-                    ? 'Email verified'
-                    : 'Mobile verified'}
-              </strong>
-
-              <p>
-                {verificationMethod === 'email'
-                  ? draft.email
-                  : draft.mobile}
-              </p>
-            </div>
-          </div>
-
-          <div className="profile-personal-summary">
-            <span className="profile-avatar">
-              {(draft.full_name || draft.fullName || 'K')
-                .trim()
-                .charAt(0)
-                .toUpperCase()}
-            </span>
-
-            <div>
-              <strong>{draft.full_name || draft.fullName || 'Your name'}</strong>
-              <p>{draft.email || draft.mobile || 'Account details'}</p>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="profile-form">
-            <div className="profile-field">
-              <label htmlFor="address">
-                House / Street Address <span>*</span>
-              </label>
-
-              <input
-                id="address"
-                name="address"
-                type="text"
-                placeholder="House no., street, area"
-                value={form.address}
-                onChange={handleChange}
-                maxLength={250}
-                autoComplete="street-address"
-                required
-              />
+              <span className="profile-brand-text">
+                <span className="profile-brand-name">
+                  Kaam<span>da</span>ar
+                </span>
+                <small>Your Home Expert</small>
+              </span>
             </div>
 
-            <div className="profile-form-row">
-              <div className="profile-field">
-                <label htmlFor="city">
-                  City <span>*</span>
-                </label>
+            <h1>Help Us Know You Better</h1>
 
-                <input
-                  id="city"
-                  name="city"
-                  type="text"
-                  placeholder="Your city"
-                  value={form.city}
-                  onChange={handleChange}
-                  maxLength={100}
-                  autoComplete="address-level2"
-                  required
-                />
-              </div>
-
-              <div className="profile-field">
-                <label htmlFor="state">
-                  State <span>*</span>
-                </label>
-
-                <input
-                  id="state"
-                  name="state"
-                  type="text"
-                  placeholder="Your state"
-                  value={form.state}
-                  onChange={handleChange}
-                  maxLength={100}
-                  autoComplete="address-level1"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="profile-field">
-              <label htmlFor="pincode">
-                PIN Code <span>*</span>
-              </label>
-
-              <input
-                id="pincode"
-                name="pincode"
-                type="text"
-                inputMode="numeric"
-                placeholder="6-digit PIN code"
-                value={form.pincode}
-                onChange={(event) => {
-                  const value = event.target.value
-                    .replace(/\D/g, '')
-                    .slice(0, 6);
-
-                  setForm((previous) => ({
-                    ...previous,
-                    pincode: value,
-                  }));
-
-                  setError('');
-                }}
-                autoComplete="postal-code"
-                maxLength={6}
-                required
-              />
-            </div>
-
-            {error && (
-              <p className="profile-error" role="alert">
-                {error}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              className="profile-submit"
-              disabled={loading || (!previewMode && !verificationToken)}
-            >
-              {loading ? 'Creating your account...' : 'Complete Registration'}
-              {!loading && <span aria-hidden="true">→</span>}
-            </button>
-
-            <p className="profile-privacy-note">
-              Your details will be used to help provide home services at your
-              location.
+            <p className="profile-description">
+              Add your basic details to complete your account.
             </p>
-          </form>
-        </section>
-      </main>
 
-      <footer className="signup-footer">
-        © {new Date().getFullYear()} Kaamdaar. All rights reserved.
-      </footer>
+            <form onSubmit={handleSubmit} noValidate>
+              <div className="profile-form-fields">
+                <div className="profile-field">
+                  <span className="profile-field-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <circle cx="12" cy="8" r="4" />
+                      <path d="M4 21v-2a8 8 0 0 1 16 0v2z" />
+                    </svg>
+                  </span>
+
+                  <input
+                    type="text"
+                    name="full_name"
+                    placeholder="Full Name"
+                    autoComplete="given-name"
+                    value={formData.full_name}
+                    onChange={handleChange}
+                    maxLength={80}
+                    required
+                    disabled={loading}
+                    aria-label="Full Name"
+                  />
+                </div>
+
+                <div className="profile-field">
+                  <span className="profile-field-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <circle cx="12" cy="8" r="4" />
+                      <path d="M4 21v-2a8 8 0 0 1 16 0v2z" />
+                    </svg>
+                  </span>
+
+                  <input
+                    type="text"
+                    name="last_name"
+                    placeholder="Last Name"
+                    autoComplete="family-name"
+                    value={formData.last_name}
+                    onChange={handleChange}
+                    maxLength={80}
+                    required
+                    disabled={loading}
+                    aria-label="Last Name"
+                  />
+                </div>
+
+                <div className="profile-field">
+                  <span className="profile-field-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <rect x="3" y="5" width="18" height="16" rx="2" />
+                      <path d="M16 3v4M8 3v4M3 10h18" />
+                    </svg>
+                  </span>
+
+                  <input
+                    type="number"
+                    name="age"
+                    placeholder="Age"
+                    min="18"
+                    max="100"
+                    value={formData.age}
+                    onChange={handleChange}
+                    required
+                    disabled={loading}
+                    aria-label="Age"
+                  />
+                </div>
+
+                <div className="profile-field">
+                  <span className="profile-field-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" />
+                      <circle cx="12" cy="10" r="2.5" />
+                    </svg>
+                  </span>
+
+                  <input
+                    type="text"
+                    name="address"
+                    placeholder="Full Address"
+                    autoComplete="street-address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    maxLength={250}
+                    required
+                    disabled={loading}
+                    aria-label="Full Address"
+                  />
+                </div>
+
+                <div className="profile-field">
+                  <span className="profile-field-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <rect x="4" y="3" width="16" height="18" rx="2" />
+                      <path d="M8 7h2M14 7h2M8 11h2M14 11h2M8 15h2M14 15h2" />
+                    </svg>
+                  </span>
+
+                  <input
+                    type="text"
+                    name="city"
+                    placeholder="City"
+                    autoComplete="address-level2"
+                    value={formData.city}
+                    onChange={handleChange}
+                    maxLength={80}
+                    required
+                    disabled={loading}
+                    aria-label="City"
+                  />
+                </div>
+
+                <div className="profile-field">
+                  <span className="profile-field-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z" />
+                      <path d="M9 3v15M15 6v15" />
+                    </svg>
+                  </span>
+
+                  <select
+                    name="state"
+                    value={formData.state}
+                    onChange={handleChange}
+                    required
+                    disabled={loading}
+                    aria-label="State"
+                  >
+                    <option value="" disabled>
+                      State
+                    </option>
+
+                    {INDIAN_STATES.map((stateName) => (
+                      <option key={stateName} value={stateName}>
+                        {stateName}
+                      </option>
+                    ))}
+                  </select>
+
+                  <span className="profile-select-arrow" aria-hidden="true">
+                    ▾
+                  </span>
+                </div>
+
+                <div className="profile-field">
+                  <span className="profile-field-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M3 9h18l-2-5H5z" />
+                      <path d="M5 9v11h14V9M9 14h6" />
+                    </svg>
+                  </span>
+
+                  <input
+                    type="text"
+                    name="pincode"
+                    placeholder="Pincode"
+                    autoComplete="postal-code"
+                    inputMode="numeric"
+                    value={formData.pincode}
+                    onChange={handleChange}
+                    maxLength={6}
+                    required
+                    disabled={loading}
+                    aria-label="Pincode"
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <p className="profile-error" role="alert">
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                className="profile-primary-button"
+                disabled={loading}
+              >
+                {loading ? 'Submitting Details...' : 'Confirm Details'}
+                {!loading && <span aria-hidden="true">→</span>}
+              </button>
+            </form>
+          </section>
+        )}
+      </main>
     </div>
   );
 };
