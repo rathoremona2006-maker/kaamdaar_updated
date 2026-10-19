@@ -18,6 +18,7 @@ import Faqs from './components/faqs.jsx';
 import Contact from './components/contact.jsx';
 import Download from './components/download.jsx';
 import Footer from './components/footer.jsx';
+import ThemeSwitcher from './components/ThemeSwitcher.jsx';
 
 import VerificationCred from './components/verification_cred.jsx';
 import OtpMobile from './components/otp_mobile.jsx';
@@ -147,6 +148,7 @@ const WebsiteLayout = () => {
       </main>
 
       <Footer />
+      <ThemeSwitcher />
     </div>
   );
 };

@@ -1259,3 +1259,98 @@ a:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+/* =========================================
+   KAAMDAAR THEME PRESETS
+   Theme switcher changes colours only; existing layout stays intact.
+   Approved brand palette: navy, blue, orange, light orange, off-white, white.
+========================================= */
+:root {
+  --kd-navy: #0B1F3A;
+  --kd-blue: #1261A0;
+  --kd-orange: #FF7A00;
+  --kd-orange-light: #FFB15C;
+  --kd-off-white: #F7F9FC;
+  --kd-white: #FFFFFF;
+  --kd-page: #F7F9FC;
+  --kd-page-end: #FFFFFF;
+  --kd-heading: #0B1F3A;
+  --kd-body-text: #0B1F3A;
+  --kd-card: #FFFFFF;
+  --kd-nav: rgba(255, 255, 255, .92);
+  --kd-border: rgba(11, 31, 58, .12);
+  --kd-shadow: rgba(11, 31, 58, .12);
+  --kd-primary: #1261A0;
+  --kd-primary-hover: #0B1F3A;
+  --kd-accent: #FF7A00;
+}
+
+:root[data-kaamdaar-theme='light-premium'] {
+  --kd-page: #F7F9FC;
+  --kd-page-end: #FFFFFF;
+  --kd-heading: #0B1F3A;
+  --kd-body-text: #0B1F3A;
+  --kd-card: #FFFFFF;
+  --kd-nav: rgba(255, 255, 255, .92);
+  --kd-border: rgba(11, 31, 58, .12);
+  --kd-shadow: rgba(11, 31, 58, .12);
+  --kd-primary: #1261A0;
+  --kd-primary-hover: #0B1F3A;
+  --kd-accent: #FF7A00;
+}
+
+:root[data-kaamdaar-theme='navy-first'] {
+  --kd-page: #0B1F3A;
+  --kd-page-end: #0B1F3A;
+  --kd-heading: #FFFFFF;
+  --kd-body-text: #F7F9FC;
+  --kd-card: #0B1F3A;
+  --kd-nav: rgba(11, 31, 58, .96);
+  --kd-border: rgba(247, 249, 252, .18);
+  --kd-shadow: rgba(11, 31, 58, .28);
+  --kd-primary: #1261A0;
+  --kd-primary-hover: #FF7A00;
+  --kd-accent: #FF7A00;
+}
+
+:root[data-kaamdaar-theme='blue-gradient'] {
+  --kd-page: #F7F9FC;
+  --kd-page-end: #FFFFFF;
+  --kd-heading: #0B1F3A;
+  --kd-body-text: #0B1F3A;
+  --kd-card: #FFFFFF;
+  --kd-nav: rgba(255, 255, 255, .94);
+  --kd-border: rgba(18, 97, 160, .18);
+  --kd-shadow: rgba(11, 31, 58, .14);
+  --kd-primary: #1261A0;
+  --kd-primary-hover: #0B1F3A;
+  --kd-accent: #FF7A00;
+}
+
+/* Main site-wide surfaces and common controls respond to the selected preset. */
+:root[data-kaamdaar-theme] body { background: var(--kd-page); color: var(--kd-body-text); }
+:root[data-kaamdaar-theme] .app-container { background: linear-gradient(180deg, var(--kd-page) 0%, var(--kd-page-end) 100%); }
+:root[data-kaamdaar-theme] .navbar { background: var(--kd-nav); border-color: var(--kd-border); box-shadow: 0 14px 40px var(--kd-shadow); }
+:root[data-kaamdaar-theme] .nav-brand-name,
+:root[data-kaamdaar-theme] .nav-links li { color: var(--kd-heading); }
+:root[data-kaamdaar-theme] .nav-cta,
+:root[data-kaamdaar-theme] .hero-cta,
+:root[data-kaamdaar-theme] .contact-submit,
+:root[data-kaamdaar-theme] .download-btn { background: var(--kd-accent); }
+:root[data-kaamdaar-theme] .nav-cta:hover,
+:root[data-kaamdaar-theme] .hero-cta:hover,
+:root[data-kaamdaar-theme] .contact-submit:hover,
+:root[data-kaamdaar-theme] .download-btn:hover { background: var(--kd-primary-hover); }
+:root[data-kaamdaar-theme] .nav-brand-mark { background: linear-gradient(145deg, var(--kd-blue), var(--kd-navy)); }
+:root[data-kaamdaar-theme='navy-first'] .app-container { background: linear-gradient(180deg, #0B1F3A 0%, #1261A0 100%); }
+:root[data-kaamdaar-theme='navy-first'] .navbar .nav-brand-name,
+:root[data-kaamdaar-theme='navy-first'] .navbar .nav-links li { color: #FFFFFF; }
+:root[data-kaamdaar-theme='navy-first'] .navbar .nav-cta { color: #FFFFFF; }
+:root[data-kaamdaar-theme='navy-first'] .features-section,
+:root[data-kaamdaar-theme='navy-first'] .appIntroduction,
+:root[data-kaamdaar-theme='navy-first'] .howit-section,
+:root[data-kaamdaar-theme='navy-first'] .testimonials-section,
+:root[data-kaamdaar-theme='navy-first'] .faqs-section,
+:root[data-kaamdaar-theme='navy-first'] .contact-section,
+:root[data-kaamdaar-theme='navy-first'] .download-section { color: #F7F9FC; }
+:root[data-kaamdaar-theme='blue-gradient'] .app-container { background: linear-gradient(180deg, #F7F9FC 0%, #FFFFFF 44%, #F7F9FC 100%); }
+:root[data-kaamdaar-theme='blue-gradient'] .nav-cta { background: linear-gradient(135deg, #1261A0, #0B1F3A); color: #FFFFFF; }
